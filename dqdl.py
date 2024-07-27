@@ -19,9 +19,6 @@ class Format(StrEnum):
     PQT = auto()
 
 
-DEFAULT_FORMAT = Format.CSV
-
-
 def read_pass(arg: str) -> str:
     match arg.split(':', 1):
         case ("pass", password):
@@ -43,20 +40,25 @@ def read_pass(arg: str) -> str:
 def main():
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
+    defaults = dict(
+        format=Format.CSV,
+        api_key='env:DUNE_API_KEY',
+        dotenv=Path('.env'),
+    )
+    parser.set_defaults(**defaults)
     parser.add_argument('-o', '--output', metavar='FILE', type=Path,
-                        help=f"""output filename (default: query number, with
-                                 a format-specific suffix such as .csv)""")
+                        help=f"""output filename
+                                 (default: query number, with format-specific
+                                 suffix such as .{defaults['format']})""")
     parser.add_argument('-f', '--format', metavar='FORMAT', type=Format,
-                        default=DEFAULT_FORMAT,
                         help=f"""output format; one of: {', '.join(Format)}
-                                 (default: {DEFAULT_FORMAT})""")
+                                 (default: {defaults['format']})""")
     parser.add_argument('-k', '--api-key', metavar='SPEC',
-                        default='env:DUNE_API_KEY',
                         help=f"""Dune API key spec
-                                 (default: env:DUNE_API_KEY)""")
+                                 (default: {defaults['api_key']})""")
     parser.add_argument('-e', '--dotenv', metavar='FILE', type=Path,
-                        default=Path('.env'),
-                        help=f"""dotenv filename (default: .env)""")
+                        help=f"""dotenv filename
+                                 (default: {defaults['dotenv']})""")
     parser.add_argument('-E', '--no-dotenv', dest='dotenv',
                         action='store_const', const=None,
                         help=f"""disable dotenv processing""")
