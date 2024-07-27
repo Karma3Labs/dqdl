@@ -43,21 +43,21 @@ def read_pass(arg: str) -> str:
 def main():
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', '-o', metavar='FILE', type=Path,
+    parser.add_argument('-o', '--output', metavar='FILE', type=Path,
                         help=f"""output filename (default: query number, with
                                  a format-specific suffix such as .csv)""")
-    parser.add_argument('--format', '-f', metavar='FORMAT', type=Format,
+    parser.add_argument('-f', '--format', metavar='FORMAT', type=Format,
                         default=DEFAULT_FORMAT,
                         help=f"""output format; one of: {', '.join(Format)}
                                  (default: {DEFAULT_FORMAT})""")
-    parser.add_argument('--api-key', '-k', metavar='SPEC',
+    parser.add_argument('-k', '--api-key', metavar='SPEC',
                         default='env:DUNE_API_KEY',
                         help=f"""Dune API key spec
                                  (default: env:DUNE_API_KEY)""")
-    parser.add_argument('--dotenv', '-e', metavar='FILE', type=Path,
+    parser.add_argument('-e', '--dotenv', metavar='FILE', type=Path,
                         default=Path('.env'),
                         help=f"""dotenv filename (default: .env)""")
-    parser.add_argument('--no-dotenv', '-E', dest='dotenv',
+    parser.add_argument('-E', '--no-dotenv', dest='dotenv',
                         action='store_const', const=None,
                         help=f"""disable dotenv processing""")
     parser.add_argument('query', metavar='QUERY', type=int,
