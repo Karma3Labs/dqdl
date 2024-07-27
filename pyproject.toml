@@ -1,0 +1,32 @@
+[build-system]
+requires = ["flit_core>=3.9"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "dqdl"
+dynamic = ["version"]
+dependencies = [
+    "dune-client>=1.7",
+    "python-dotenv>=1.0",
+    "pandas>=2.2",
+    "pyarrow>=17.0"
+]
+requires-python = ">=3.12"
+authors = [
+    { name = "Eugene Kim", email = "ek@karma3labs.com" },
+]
+description = "Dune query result downloader"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/Karma3Labs/dqdl"
+Repository = "https://github.com/Karma3Labs/dqdl.git"
+Issues = "https://github.com/Karma3Labs/dqdl/issues"
+
+[project.scripts]
+dqdl = "dqdl:main"
