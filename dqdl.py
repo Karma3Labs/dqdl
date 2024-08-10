@@ -10,6 +10,7 @@ import dotenv
 import pandas as pd
 import passarg
 from dune_client.client import DuneClient
+from requests.exceptions import HTTPError
 
 _logger = logging.getLogger(__name__)
 
@@ -58,6 +59,9 @@ def main():
     parser.add_argument('-E', '--no-dotenv', dest='dotenv',
                         action='store_const', const=None,
                         help=f"""disable dotenv processing""")
+    parser.add_argument('-r', '--run', action='store_true', default=False,
+                        help="""actually run the query
+                                (default is to fetch existing result)""")
     parser.add_argument('--log-level', metavar='LEVEL',
                         type=log_level,
                         help=f"""enable log messages at LEVEL or higher; 
@@ -75,7 +79,13 @@ def main():
     client = DuneClient(api_key=api_key)
     if args.log_level is not None:
         client.logger.setLevel(args.log_level)
-    df: pd.DataFrame = client.get_latest_result_dataframe(args.query)
+    q = QueryBase(query_id=args.query)
+    try:
+        df: pd.DataFrame = client.get_latest_result_dataframe(q)
+    except HTTPError as e:
+        if e.response.status_code != 404 or not args.run:
+            raise
+        df: pd.DataFrame = client.run_query_dataframe(q)
     if output == '-':
         output = sys.stdout
     match args.format:
