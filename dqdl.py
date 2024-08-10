@@ -3,13 +3,18 @@ __version__ = '0.1.1'
 import argparse
 import logging
 import sys
+from datetime import datetime, timezone
 from enum import auto, StrEnum
 from pathlib import Path
+from typing import Any
 
 import dotenv
 import pandas as pd
 import passarg
 from dune_client.client import DuneClient
+from dune_client.query import QueryBase
+from dune_client.types import ParameterType, QueryParameter
+from iso8601 import parse_date
 from requests.exceptions import HTTPError
 
 _logger = logging.getLogger(__name__)
@@ -22,6 +27,61 @@ log_levels = {n.lower(): v
 class Format(StrEnum):
     CSV = auto()
     PQT = auto()
+
+
+def param(qp: str) -> QueryParameter:
+    """Parse and return a Dune query parameter."""
+    nt, s = qp.split('=', 1)
+    try:
+        n, ts = nt.rsplit(':', 1)
+    except ValueError:
+        n = nt
+        t, v = guess_qp_type(s)
+        _logger.info(f"guessed type {t.value} for parameter {n}; "
+                     f"consider specifying it, i.e. {n}:{t.value}={s}")
+    else:
+        t = ParameterType.from_string(ts)
+        v = parse_qp_value(t, s)
+    return QueryParameter(n, t, v)
+
+
+def parse_date_into_utc(v: str) -> datetime:
+    return parse_date(v).astimezone(timezone.utc)
+
+
+def guess_qp_type(v: str) -> tuple[ParameterType, Any]:
+    """Guess the Dune query parameter type of the given value."""
+    try:
+        return ParameterType.DATE, parse_date_into_utc(v)
+    except ValueError:
+        pass
+    try:
+        return ParameterType.NUMBER, int(v)
+    except ValueError:
+        pass
+    try:
+        return ParameterType.NUMBER, float(v)
+    except ValueError:
+        pass
+    if ',' in v:
+        return ParameterType.ENUM, v
+    return ParameterType.TEXT, v
+
+
+def parse_qp_value(t: ParameterType, v: str) -> Any:
+    """Parse a Dune query parameter value of the given type."""
+    match t:
+        case ParameterType.TEXT:
+            return v
+        case ParameterType.NUMBER:
+            try:
+                return int(v)
+            except ValueError:
+                return float(v)
+        case ParameterType.DATE:
+            return parse_date_into_utc(v)
+        case ParameterType.ENUM:
+            return v
 
 
 def log_level(name: str) -> int:
@@ -68,6 +128,11 @@ def main():
                                  one of: {', '.join(log_level_names)}""")
     parser.add_argument('query', metavar='QUERY', type=int,
                         help=f"""Dune query number""")
+    parser.add_argument('params', metavar='NAME[:TYPE]=VALUE',
+                        type=param, nargs='*',
+                        help=f"""Dune query parameters (TYPE is one of:
+                                 {', '.join(v.value
+                                            for v in ParameterType)})""")
     args = parser.parse_args()
     if args.log_level is not None:
         _logger.setLevel(args.log_level)
@@ -79,7 +144,7 @@ def main():
     client = DuneClient(api_key=api_key)
     if args.log_level is not None:
         client.logger.setLevel(args.log_level)
-    q = QueryBase(query_id=args.query)
+    q = QueryBase(query_id=args.query, params=args.params)
     try:
         df: pd.DataFrame = client.get_latest_result_dataframe(q)
     except HTTPError as e:
