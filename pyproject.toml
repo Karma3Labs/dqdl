@@ -9,7 +9,8 @@ dependencies = [
     "dune-client>=1.7",
     "python-dotenv>=1.0",
     "pandas>=2.2",
-    "pyarrow>=17.0"
+    "pyarrow>=17.0",
+    "passarg>=0.1.0",
 ]
 requires-python = ">=3.12"
 authors = [

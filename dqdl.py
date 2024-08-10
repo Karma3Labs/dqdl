@@ -2,13 +2,13 @@ __version__ = '0.1.1'
 
 import argparse
 import logging
-import os
 import sys
 from enum import auto, StrEnum
 from pathlib import Path
 
 import dotenv
 import pandas as pd
+import passarg
 from dune_client.client import DuneClient
 
 _logger = logging.getLogger(__name__)
@@ -17,24 +17,6 @@ _logger = logging.getLogger(__name__)
 class Format(StrEnum):
     CSV = auto()
     PQT = auto()
-
-
-def read_pass(arg: str) -> str:
-    match arg.split(':', 1):
-        case ("pass", password):
-            return password
-        case ("env", var):
-            return os.environ[var]
-        case ("file", pathname):
-            with open(pathname, "r") as f:
-                return f.read()
-        case ("fd", number):
-            with os.fdopen(int(number), "r") as f:
-                return f.read()
-        case ("stdin", ):
-            return sys.stdin.read()
-        case _:
-            raise ValueError("invalid password source {arg!r}")
 
 
 def main():
@@ -68,7 +50,8 @@ def main():
     if args.dotenv is not None:
         dotenv.load_dotenv(args.dotenv)
     output = args.output or f'{args.query}.{args.format}'
-    api_key = read_pass(args.api_key)
+    with passarg.reader() as read_pass:
+        api_key = read_pass(args.api_key)
     client = DuneClient(api_key=api_key)
     df: pd.DataFrame = client.get_latest_result_dataframe(args.query)
     if output == '-':
